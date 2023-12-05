@@ -1,0 +1,61 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: linear-gradient(to right, #1DB954 0%, #191414 100%); /* Spotify Green to Black */
+  font-size: 12px;
+}
+
+/* Rest of your CSS remains unchanged */
+
+/* Changes to specific elements' colors to match Spotify's theme */
+.screen {
+  background: #191414; /* Dark background */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); /* Darker shadow */
+}
+
+.screen-header {
+  background: #282828; /* Darker header */
+}
+
+.screen-header-button.close {
+  background: #ff4d4d; /* Red close button */
+}
+
+.screen-header-button.maximize {
+  background: #1DB954; /* Spotify Green maximize button */
+}
+
+.screen-header-button.minimize {
+  background: #ffac33; /* Yellow minimize button */
+}
+
+.app-form-control {
+  border-bottom: 1px solid #b3b3b3; /* Lighter input underline */
+  color: #fff; /* White text */
+}
+
+.app-form-control::placeholder {
+  color: #b3b3b3; /* Lighter placeholder text */
+}
+
+.app-form-control:focus {
+  border-bottom-color: #fff; /* White bottom border on focus */
+}
+
+.app-form-button {
+  color: #1DB954; /* Spotify Green button text */
+}
+
+.app-form-button:hover {
+  color: #21b661; /* Lighter green on hover */
+}
+
+.credits {
+  color: #fff; /* White credits text */
+}

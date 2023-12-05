@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Picker</title>
+    <link rel="stylesheet" href="{% static 'css/playlist.css' %}">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0; /* Add margin 0 to body */
+        }
+
+        /* Add the header styles here */
+        .header {
+            overflow: hidden;
+            background-color: #1db954;
+            padding: 20px 10px;
+        }
+
+        .header a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            text-decoration: none;
+            font-size: 18px;
+            line-height: 25px;
+            border-radius: 4px;
+        }
+
+        .header a.logo {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .header a:hover {
+            background-color: #146430;
+            color: white;
+        }
+
+        .header a.active {
+            background-color: #146430;
+            color: white;
+        }
+
+        .header-right {
+            float: right;
+        }
+
+        @media screen and (max-width: 500px) {
+            .header a {
+                float: none;
+                display: block;
+                text-align: left;
+            }
+
+            .header-right {
+                float: none;
+            }
+        }
+
+        /* Rest of your existing styles */
+        .audio-player {
+            max-width: 500px;
+            margin: 20px auto 0;
+            padding: 40px 20px 20px;
+            background-color: #1db954;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .audio-player h2 {
+            color: #ffffff;
+        }
+
+        .audio-player .song-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .audio-player .song-list li {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #282828;
+            cursor: pointer;
+        }
+
+        .audio-player .song-list li:hover {
+            background-color: #146430;
+        }
+
+        .audio-player .song-list li img {
+            border-radius: 50%;
+        }
+
+        .audio-player .song-list li.active {
+            background-color: #1db954;
+        }
+
+        .audio-player .song-list li .song-title {
+            flex-grow: 1;
+            margin-left: 10px;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header">
+        <a href="{% url 'home' %}" class="logo">{{ cafe_name }}</a>
+        <div class="header-right">
+            <a class="active" href="{% url 'home' %}">Home</a>
+            <a href="{% url 'display_qr_code' %}">QR Code</a>
+            <a href="{% url 'music_voting' cafe_id %}">Voting Page</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+
+    <!-- Audio Player -->
+    <div class="audio-player">
+        <h2>Pick Your Voting Playlist</h2>
+        <ul class="song-list">
+            {% for playlist in playlists %}
+            <li>
+                <img src="{{ playlist.image_url }}" alt="{{ playlist.name }}" width="50">
+                <a href="{% url 'copy_playlist_and_rename' playlist_id=playlist.playlist_id %}" class="song-title">{{ playlist.name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Bootstrap & jQuery JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

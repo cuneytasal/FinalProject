@@ -1,0 +1,103 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{cafe.name}}</title>
+    <link rel="stylesheet" href="{% static 'css/playlist.css' %}">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0; /* Add margin 0 to body */
+        }
+
+        /* Rest of your existing styles */
+        .audio-player {
+            max-width: 500px;
+            margin: 20px auto 0;
+            padding: 40px 20px 20px;
+            background-color: #1db954;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .audio-player h2 {
+            color: #ffffff;
+        }
+
+        .audio-player .song-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .audio-player .song-list li {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #282828;
+            cursor: pointer;
+        }
+
+        .audio-player .song-list li:hover {
+            background-color: #146430;
+        }
+
+        .audio-player .song-list li img {
+            border-radius: 50%;
+        }
+
+        .audio-player .song-list li.active {
+            background-color: #1db954;
+        }
+
+        .audio-player .song-list li .song-title {
+            flex-grow: 1;
+            margin-left: 10px;
+            color: #ffffff;
+        }
+        .invisible-btn {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+        .invisible-btn:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Audio Player -->
+    <div class="audio-player">
+        <h2>{{ cafe.cafe_name }} - Vote the Music You Want to Listen</h2>
+        <form method="post" action="{% url 'music_voting' pk=cafe.id %}?refresh=true" class="d-flex justify-content-center pt-5">
+            {% csrf_token %}
+            <ul class="song-list">
+                {% for music in musics %}
+                <li>
+                    <input type="hidden" name="music_id_{{ music.id }}" value="{{ music.id }}">
+                    <input type="hidden" name="cafe_id" value="{{ cafe.id }}">
+                    <button type="submit" class="invisible-btn" name="submit_{{ music.id }}">
+                        <img src="{{ music.music_image }}" alt="{{ music.music_name }}" width="50">
+                        {{ music.music_name }} - {{ music.artist_name }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </form>
+    </div>
+    
+
+    <!-- Bootstrap & jQuery JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+</body>
+</html>

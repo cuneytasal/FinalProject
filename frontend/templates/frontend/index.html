@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title> 
+  <link rel="stylesheet" href="{% static 'css/login_register.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="wrapper">
+      <div class="title"><span>Login</span></div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="row">
+          <i class="fas fa-user"></i>
+          {{ form.username }}
+        </div>
+        <div class="row">
+          <i class="fas fa-lock"></i>
+          {{ form.password }}
+        </div>
+        <div class="row button">
+          <input type="submit" value="Login">
+        </div>
+        <div class="signup-link">Not a member? <a href="{% url 'register' %}">Signup now</a></div>
+        <!-- Display error message if authentication fails -->
+        {% if messages %}
+          <ul class="messages">
+            {% for message in messages %}
+              <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</body>
+</html>
