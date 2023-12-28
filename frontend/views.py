@@ -1,19 +1,23 @@
 #from requests_toolbelt.utils import dump
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.urls import reverse
 from .forms import LoginForm, RegisterForm
 from .credentials import REDIRECT_URI, CLIENT_SECRET, CLIENT_ID
 from django.contrib import messages
+from django.db.models.functions import Lower
 from django.contrib.auth.decorators import login_required
 from .models import SpotifyUser, MusicVotes, CafeMusics, CurrentVotes
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.core.cache import cache
 from urllib.parse import urlencode
 import secrets
 import requests
 import time
+import locale
 from datetime import datetime, timedelta
 
 
@@ -42,10 +46,10 @@ def logoutUser(request):
 
 
 def registerUser(request):
-    form = RegisterForm()
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
+            # Process valid form data
             cafe_name = form.cleaned_data['cafe_name']
             name = form.cleaned_data['name_surname']
             email = form.cleaned_data['email']
@@ -64,13 +68,14 @@ def registerUser(request):
             })
 
             #send_mail(subject, content, 'music_voting@musicvoting.com', ['20171701035@stu.khas.edu.tr', 'ceren.durna@stu.khas.edu.tr'], html_message=html)
-            send_mail(subject, content, 'music_voting@musicvoting.com', ['20171701035@stu.khas.edu.tr'], html_message=html)
+            send_mail(subject, content, 'democraticjukebox@gmail.com', ['20171701035@stu.khas.edu.tr'], html_message=html)
+            print('Mail has successfully sent.')
             messages.success(request, 'Thank you for registering. We will get back to you as soon as possible.')
             return redirect('login')  # Redirect to login page after successful registration
-        else:
-            form = RegisterForm()
+    else:
+        form = RegisterForm()
 
-    context ={'form': form}
+    context = {'form': form}
     return render(request, 'frontend/register.html', context)
 
 
@@ -84,6 +89,7 @@ def home(request):
     #print(access_token)
     cafe_name = user_info.cafe_name
     cafe_id = user_info.pk
+    voting_playlist_id = '0'
 
     playlists = []
 
@@ -103,6 +109,7 @@ def home(request):
             
             for playlist in playlists_data:
                 if playlist['name'] == 'voting_playlist':
+                    voting_playlist_id = playlist['id']
                     continue
                 else:
                     name = playlist['name']
@@ -111,8 +118,13 @@ def home(request):
                     if images:
                         image_url = images[0]['url']
                         playlists.append({'name': name, 'image_url': image_url, 'playlist_id': playlist_id})
-        
-    return render(request, 'frontend/home.html', {'playlists': playlists, 'cafe_name': cafe_name, 'cafe_id': cafe_id})
+    locale.setlocale(locale.LC_ALL, 'tr_TR.UTF-8')
+    playlists = sorted(playlists, key=lambda x: locale.strxfrm(x['name']))
+    
+    for playlist in playlists:
+        print(playlist['name'])
+    return render(request, 'frontend/home.html', {'playlists': playlists, 'cafe_name': cafe_name,
+                            'cafe_id': cafe_id, 'voting_playlist_id': voting_playlist_id})
 
 
 @login_required(login_url="login")
@@ -160,14 +172,17 @@ def playlist_songs(request, playlist_id):
                 else:
                     # Handle error fetching track details
                     pass
-        
+        """
         if playlist_id:
             start_playback(access_token, playlist_id)
+        """
         
-    return render(request, 'frontend/playlist_songs.html', {'songs': songs, 'cafe_name': cafe_name, 'cafe_id': cafe_id})
+    return render(request, 'frontend/playlist_songs.html', {'songs': songs, 'access_token': access_token,
+                'cafe_name': cafe_name, 'cafe_id': cafe_id, 'playlist_id': playlist_id})
 
 
-def start_playback(access_token, playlist_id):
+@login_required(login_url="login")
+def start_playback(request, access_token, playlist_id):
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
@@ -192,9 +207,9 @@ def start_playback(access_token, playlist_id):
             if response.status_code == 204:
                 print('Playback started.')
                 # Set repeat mode for the playlist
-                time.sleep(3)
+                time.sleep(5)
                 set_repeat_mode(access_token, 'context')
-                return True
+                return redirect('playlist_songs', playlist_id=playlist_id)
             else:
                 print('Failed to start playback:', response.json())
         else:
@@ -202,7 +217,7 @@ def start_playback(access_token, playlist_id):
     else:
         print('Failed to fetch devices:', devices_response.json())
 
-    return False
+    return redirect('playlist_songs', playlist_id=playlist_id)
 
 
 def set_repeat_mode(access_token, repeat_state):
@@ -220,10 +235,8 @@ def set_repeat_mode(access_token, repeat_state):
 
     if response.status_code == 204:
         print(f'Repeat mode set to {repeat_state}.')
-        return True
     else:
         print('Failed to set repeat mode:', response.json())
-        return False
 
 
 @login_required(login_url="login")
@@ -346,7 +359,7 @@ def update_cafe_music_model(playlist_id, user):
 
 
 @login_required(login_url="login")
-def display_qr_code(request):
+def display_qr_code(request, playlist_id):
     User = get_user_model()
     user_info = User.objects.get(pk=request.user.pk)  # Retrieve the user info including cafe_name
     cafe_name = user_info.cafe_name
@@ -359,12 +372,62 @@ def display_qr_code(request):
         return redirect('home')
 
     # Render the QR code template with the contact object passed as context
-    return render(request, 'frontend/qr_code.html', {'contact': contact, 'cafe_name': cafe_name, 'cafe_id': cafe_id})
+    return render(request, 'frontend/qr_code.html', {'contact': contact, 'cafe_name': cafe_name,
+                'cafe_id': cafe_id, 'playlist_id': playlist_id})
+
+
+@login_required(login_url="login")
+def cafe_songs_stats(request, playlist_id):
+    User = get_user_model()
+    user= User.objects.get(pk=request.user.pk)
+    cafe_name = user.cafe_name
+    cafe_id = user.pk
+
+    # Retrieve the cafe's music
+    cafe_musics = CafeMusics.objects.filter(cafe_id=user.pk)
+    total_votes = MusicVotes.objects.filter(cafe_id=cafe_id).count()
+    total_current_votes = CurrentVotes.objects.filter(cafe_id=cafe_id).count()
+
+    song_stats = []
+    for music in cafe_musics:
+        # Get total votes for the song from MusicVotes
+        music_total_votes = MusicVotes.objects.filter(music=music, cafe=user).count()
+
+        # Get current votes from CurrentVotes
+        current_votes = CurrentVotes.objects.filter(music=music, cafe=user).count()
+
+        # Calculate percentage
+        percentage = int((current_votes / total_current_votes) * 100 if total_current_votes != 0 else 0)
+
+        # Append song statistics to the list
+        song_stats.append({
+            'music_image': music.music_image,
+            'music_name': music.music_name,
+            'total_votes': total_votes,
+            'music_total_votes': music_total_votes,
+            'current_votes': current_votes,
+            'percentage': percentage,
+        })
+    return render(request, 'frontend/stats.html', {'song_stats': song_stats, 'cafe_name': cafe_name, 'playlist_id': playlist_id, 'cafe_id': cafe_id})
+
+
+@login_required(login_url="login")
+def about(request, playlist_id):
+    User = get_user_model()
+    user_info = User.objects.get(pk=request.user.pk)
+    cafe_name = user_info.cafe_name
+    cafe_id = user_info.pk
+    return render(request, 'frontend/about.html', {'playlist_id':playlist_id, 'cafe_id':cafe_id, 'cafe_name':cafe_name})
 
 
 def music_voting(request, pk):
     cafe = get_object_or_404(get_user_model(), pk=pk)
-    musics = CafeMusics.objects.filter(cafe_id=pk)
+    locale.setlocale(locale.LC_ALL, 'tr_TR.UTF-8')
+    musics = CafeMusics.objects.filter(cafe_id=pk).order_by('music_name')
+    voted = False
+    already_voted = False
+    current_song = None
+    current_song_status = False
 
     user_spotify = SpotifyUser.objects.get(user=pk)
     access_token = user_spotify.spotify_access_token
@@ -395,6 +458,22 @@ def music_voting(request, pk):
             current_track = response.json().get('item')
             if current_track:
                 current_song_name = current_track['name']
+                if current_song_name == '':
+                    current_song_status = False
+                else:
+                    current_song_status = True
+                current_song_id = current_track['id']
+                current_song_artist = current_track['artists'][0]['name']
+                current_song_image = current_track['album']['images'][0]['url']
+
+                current_song = {
+                    'id': current_song_id,
+                    'name': current_song_name,
+                    'artist_name': current_song_artist,
+                    'music_image': current_song_image,
+                }
+
+                # Exclude current song from musics queryset
                 musics = musics.exclude(music_name=current_song_name)
 
     if request.method == 'POST':
@@ -405,23 +484,118 @@ def music_voting(request, pk):
                 music_id = request.POST.get(f"music_id_{music.id}")
                 music = get_object_or_404(CafeMusics, pk=music_id)
                 music_name = music.music_name
-                spotift_music_id = music.spotify_music_id
+                spotify_music_id = music.spotify_music_id
 
                 customer_ip = request.META.get('REMOTE_ADDR')
 
                 already_voted = cache.get(customer_ip)
                 if already_voted:
-                    return render(request, 'voting_page.html', {'musics': musics, 'cafe': cafe})
-                minute = 60
-                cache.set(customer_ip, True, 3 * minute)
+                    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                                        'already_voted': already_voted, 'current_song': current_song, 'current_song_status': current_song_status})
+                
+                else:
+                    minute = 60
+                    cache.set(customer_ip, True, 5 * minute)
 
-                MusicVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotift_music_id=spotift_music_id)
-                CurrentVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotift_music_id=spotift_music_id)
+                    MusicVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotify_music_id=spotify_music_id)
+                    CurrentVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotify_music_id=spotify_music_id)
 
-                # Redirect to the same page after voting
-                return redirect('music_voting', pk=cafe_id)
+                    # Set 'voted' to True when the vote is successful
+                    voted = True
 
-    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe})
+                    # Redirect to the same page after voting
+                    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                                        'already_voted': already_voted, 'current_song': current_song, 'current_song_status': current_song_status})
+
+    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                        'already_voted': already_voted, 'current_song': current_song, 'current_song_status': current_song_status})
+
+
+def searchBar(request, pk):
+    cafe = get_object_or_404(get_user_model(), pk=pk)
+    voted = False
+    already_voted = False
+    current_song = None
+    current_song_status = False
+    user_spotify = SpotifyUser.objects.get(user=pk)
+    access_token = user_spotify.spotify_access_token
+    current_song_name = ''
+    musics = {}
+    query_text = ''
+    
+    if request.method == 'GET':
+        query = request.GET.get('query')
+        if query:
+            query_text = query
+            locale.setlocale(locale.LC_ALL, 'tr_TR.UTF-8')
+            musics = CafeMusics.objects.filter(cafe_id=pk, music_name__istartswith=query).order_by('music_name')
+            for music in musics:
+                music.music_name = music.music_name.lower()
+
+            # Filter further in Python to ensure exact matches at the beginning
+            #musics = [music.music_name.lower() for music in musics if music.music_name.lower().startswith(query.lower())]
+    
+    if access_token:
+        current_track_url = 'https://api.spotify.com/v1/me/player/currently-playing'
+        response = requests.get(current_track_url, headers={'Authorization': f'Bearer {access_token}'})
+
+        if response.status_code == 200:
+            current_track = response.json().get('item')
+            if current_track:
+                current_song_name = current_track['name']
+                if current_song_name == '':
+                    current_song_status = False
+                else:
+                    current_song_status = True
+                
+                current_song_id = current_track['id']
+                current_song_artist = current_track['artists'][0]['name']
+                current_song_image = current_track['album']['images'][0]['url']
+
+                current_song = {
+                    'id': current_song_id,
+                    'name': current_song_name,
+                    'artist_name': current_song_artist,
+                    'music_image': current_song_image,
+                }
+
+                # Exclude current song from musics queryset
+                musics = musics.exclude(music_name=current_song_name)
+                
+    if request.method == 'POST':
+        cafe_id = request.POST.get('cafe_id')
+        for music in musics:
+            submit_name = f"submit_{music.id}"
+            if submit_name in request.POST:
+                music_id = request.POST.get(f"music_id_{music.id}")
+                music = get_object_or_404(CafeMusics, pk=music_id)
+                music_name = music.music_name
+                spotify_music_id = music.spotify_music_id
+
+                customer_ip = request.META.get('REMOTE_ADDR')
+
+                already_voted = cache.get(customer_ip)
+                if already_voted:
+                    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                                        'already_voted': already_voted, 'current_song': current_song, 'current_song_status': current_song_status})
+                
+                else:
+                    minute = 60
+                    cache.set(customer_ip, True, 5 * minute)
+
+                    MusicVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotify_music_id=spotify_music_id)
+                    CurrentVotes.objects.create(music=music, cafe_id=cafe_id, customer_ip=customer_ip, music_name=music_name, spotify_music_id=spotify_music_id)
+
+                    # Set 'voted' to True when the vote is successful
+                    voted = True
+
+                    # Redirect to the same page after voting
+                    return render(request, 'frontend/voting_page.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                                        'already_voted': already_voted, 'current_song': current_song, 'current_song_status': current_song_status})
+
+
+    return render(request, 'frontend/search.html', {'musics': musics, 'cafe': cafe, 'voted': voted,
+                                                    'already_voted': already_voted, 'query_text': query_text})
 
 
 def spotifyAuth(request):
@@ -486,14 +660,14 @@ def spotifyCallback(request):
             print(f'New user {user_info.cafe_name} created.')
             user_spotify.spotify_access_token = tokens['access_token']
             user_spotify.spotify_refresh_token = tokens['refresh_token']
-            user_spotify.token_expires_at = tokens['expires_in']
+            user_spotify.token_expires_at = datetime.now() + timedelta(seconds=tokens['expires_in'])
             user_spotify.save()
 
         else:
             print(f'{user_info.cafe_name} updated.')
             user_spotify.spotify_access_token = tokens['access_token']
             user_spotify.spotify_refresh_token = tokens['refresh_token']
-            user_spotify.token_expires_at = datetime.now()+ timedelta(seconds=tokens['expires_in'])
+            user_spotify.token_expires_at = datetime.now() + timedelta(seconds=tokens['expires_in'])
             user_spotify.save()
 
         messages.success(request, 'Successfully connected to Spotify!')
@@ -501,6 +675,3 @@ def spotifyCallback(request):
         messages.error(request, 'Failed to connect to Spotify. Please try again.')
 
     return redirect('home')
-
-
-

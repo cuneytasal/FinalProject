@@ -24,7 +24,7 @@ class CafeMusics(models.Model):
     artist_name = models.CharField(max_length=100)
     music_image = models.URLField(max_length=500)
     spotify_music_id = models.CharField(max_length=500, null=True)
-    music_duration = models.PositiveIntegerField(null=True) 
+    music_duration = models.PositiveIntegerField(null=True)
 
 
 class MusicVotes(models.Model):
