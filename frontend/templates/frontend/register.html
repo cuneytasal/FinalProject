@@ -11,36 +11,39 @@
   <body>
     <div class="container">
       <div class="wrapper">
-        <div class="title"><span>Register</span></div>
-        <form method="post">
-          {% csrf_token %}
-          <div class="row">
-            <i class="fas fa-coffee"></i>
-            {{ form.cafe_name }}
-          </div>
-          <div class="row">
-            <i class="fas fa-user"></i>
-            {{ form.name_surname }}
-          </div>
-          <div class="row">
-            <i class="fas fa-envelope"></i>
-            {{ form.email }}
-          </div>
-          <div class="row">
-            <i class="fas fa-phone"></i>
-            {{ form.phone_number }}
-          </div>
-          <div class="row">
-            <i class="fas fa-lock"></i>
-            {{ form.password }}
-          </div>
-          <div class="row button">
-            <input type="submit" value="Register">
-          </div>
-          <div class="signup-link">Already a member? <a href="{% url 'login' %}">Login now</a></div>
-        </form>
+          <div class="title"><span>Register</span></div>
+          <form method="post">
+              {% csrf_token %}
+              <div class="row">
+                  <i class="fas fa-coffee"></i>
+                  {{ form.cafe_name }}
+              </div>
+              <div class="row">
+                  <i class="fas fa-user"></i>
+                  {{ form.name_surname }}
+              </div>
+              <div class="row">
+                  <i class="fas fa-envelope"></i>
+                  {{ form.email }}
+              </div>
+              <div class="row">
+                  <i class="fas fa-phone"></i>
+                  {{ form.phone_number }}
+                  {% for error in form.phone_number.errors %}
+                      <span class="error-message">{{ error }}</span>
+                  {% endfor %}
+              </div>
+              <div class="row">
+                  <i class="fas fa-lock"></i>
+                  {{ form.password }}
+              </div>
+              <div class="row button">
+                  <input type="submit" value="Register">
+              </div>
+              <div class="signup-link">Already a member? <a href="{% url 'login' %}">Login now</a></div>
+          </form>
       </div>
-    </div>
+  </div>
     <script>
       window.onload = function() {
         var successMessage = document.querySelector('.alert-success');

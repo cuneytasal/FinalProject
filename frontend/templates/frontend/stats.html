@@ -1,0 +1,227 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stats</title>
+    <link rel="stylesheet" href="{% static 'css/playlist.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0; /* Add margin 0 to body */
+        }
+
+        /* Add the header styles here */
+        .header {
+            overflow: hidden;
+            background-color: #1db954;
+            padding: 20px 10px;
+        }
+
+        .header a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            text-decoration: none;
+            font-size: 18px;
+            line-height: 25px;
+            border-radius: 4px;
+        }
+
+        .header a.logo {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .header a:hover {
+            background-color: #146430;
+            color: white;
+        }
+
+        .header a.active {
+            background-color: #146430;
+            color: white;
+        }
+
+        .header-right {
+            float: right;
+        }
+
+        @media screen and (max-width: 500px) {
+            .header a {
+                float: none;
+                display: block;
+                text-align: left;
+            }
+
+            .header-right {
+                float: none;
+            }
+        }
+
+        /* Rest of your existing styles */
+        .audio-player {
+            max-width: 500px;
+            margin: 20px auto 0;
+            padding: 40px 20px 20px;
+            background-color: #1db954;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .audio-player h2 {
+            color: #ffffff;
+        }
+
+        .audio-player .song-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .audio-player .song-list li {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #282828;
+            cursor: pointer;
+        }
+
+        .audio-player .song-list li:hover {
+            background-color: #146430;
+        }
+
+        .audio-player .song-list li img {
+            border-radius: 50%;
+        }
+
+        .audio-player .song-list li.active {
+            background-color: #1db954;
+        }
+
+        .audio-player .song-list li .song-title {
+            flex-grow: 1;
+            margin-left: 10px;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header">
+        <a href="{% url 'home' %}" class="logo">{{ cafe_name }}</a>
+        <div class="header-right">
+            <a href="{% url 'about' playlist_id=playlist_id%}">About Us</a>
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'display_qr_code' playlist_id=playlist_id %}">QR Code</a>
+            <a href="{% url 'music_voting' cafe_id %}">Customer View</a>
+            <a href="{% url 'playlist_songs' playlist_id=playlist_id %}">Playlist Songs</a>
+            <a class="active" href="">Stats</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+
+        <!-- Audio Player -->
+        <div class="audio-player">
+            <h2>Song Stats</h2>
+            <div class="table-responsive">
+                <canvas id="songChart" width="400" height="200"></canvas>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Music Name</th>
+                            <th>Total Votes</th>
+                            <th>Current Votes</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for song in song_stats %}
+                        <tr>
+                            <td><img src="{{ song|dict_key:'music_image' }}" alt="{{ song|dict_key:'music_name' }}" width="50"></td>
+                            <td>{{ song|dict_key:'music_name' }}</td>
+                            <td>{{ song|dict_key:'music_total_votes' }}</td>
+                            <td>{{ song|dict_key:'current_votes' }}</td>
+                            <td>%{{ song|dict_key:'percentage' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <script>
+            var songStats = {{ song_stats|safe }};
+            
+            // Sort the songStats array based on the percentage in descending order
+            songStats.sort(function(a, b) {
+                return b.percentage - a.percentage;
+            });
+        
+            // Extract the top 5 songs
+            var top5Songs = songStats.slice(0, 5);
+            
+            // Get song names and percentages for the chart
+            var songNames = top5Songs.map(function(song) {
+                return song.music_name;
+            });
+            var percentages = top5Songs.map(function(song) {
+                return song.percentage;
+            });
+        
+            var ctx = document.getElementById('songChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: songNames,
+                    datasets: [{
+                        label: 'Percentage',
+                        data: percentages,
+                        backgroundColor: 'rgba(255, 0, 0, 0.5)', // Red color for bars
+                        borderColor: 'rgba(255, 0, 0, 1)', // Border color for bars
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'black' // Color for Y-axis labels (song names)
+                            }
+                        },
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'black' // Color for X-axis labels (song names)
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'black' // Color for legend text
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+        
+
+    <!-- Bootstrap & jQuery JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>

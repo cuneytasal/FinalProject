@@ -118,9 +118,13 @@
     <div class="header">
         <a href="{% url 'home' %}" class="logo">{{ cafe_name }}</a>
         <div class="header-right">
-            <a class="active" href="{% url 'home' %}">Home</a>
-            <a href="{% url 'display_qr_code' %}">QR Code</a>
-            <a href="{% url 'music_voting' cafe_id %}">Voting Page</a>
+            <a href="{% url 'start_playback' access_token=access_token playlist_id=playlist_id %}"><b>PLAY</b></a>
+            <a href="{% url 'about' playlist_id=playlist_id%}">About Us</a>
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'display_qr_code' playlist_id=playlist_id %}">QR Code</a>
+            <a href="{% url 'music_voting' cafe_id %}">Customer View</a>
+            <a class="active" href="{% url 'playlist_songs' playlist_id %}">Playlist Songs</a>
+            <a href="{% url 'cafe_songs_stats' playlist_id=playlist_id %}">Stats</a>
             <a href="{% url 'logout' %}">Logout</a>
         </div>
     </div>

@@ -1,9 +1,9 @@
 {% extends 'frontend/base.html' %}
+
 {% block content %}
     <!-- Audio Player -->
     <div class="audio-player">
-        <h2>{{ cafe.cafe_name }} - Vote the Music You Want to Listen</h2>
-
+        
         <form action="{% url 'search' pk=cafe.id %}" method="get" class="search-bar">
             <input type="search" name="query" pattern=".*\S.*" required>
             <button class="search-btn" type="submit">
@@ -11,28 +11,23 @@
             </button>
         </form>
 
+        <h2>Search Results For - '{{ query_text }}'</h2>
+
+        <script>
+            // Check if 'voted' or 'already_voted' is true and display alert
+            {% if voted %}
+                alert('Thank you for voting! You can vote again after 5 minutes.');
+            {% elif already_voted %}
+                alert('You already voted. Please wait 5 minutes to vote again.');
+            {% endif %}
+        </script>
+
         <form method="post" action="{% url 'music_voting' pk=cafe.id %}?refresh=true" class="d-flex justify-content-center pt-5">
             {% csrf_token %}
             <ul class="song-list">
-                <h2>Current Song</h2>
-                {% if current_song_status %}
-                    {% if current_song %}
-                        <li>
-                            <input type="hidden" name="music_id_{{ current_song.id }}" value="{{ current_song.id }}">
-                            <input type="hidden" name="cafe_id" value="{{ cafe.id }}">
-                            <div class="your-list-item-style">
-                                <img src="{{ current_song.music_image }}" alt="{{ current_song.music_name }}" width="50">
-                                {{ current_song.name }} - {{ current_song.artist_name }}
-                            </div>
-                        </li>
-                    {% endif %}
-                {% else %}
-                    <li>
-                        No songs are playing at the moment.
-                    </li>
-                {% endif %}
-                <br>
                 <h2>Songs to Vote</h2>
+                {% if musics %}
+
                 {% for music in musics %}
                 <li>
                     <input type="hidden" name="music_id_{{ music.id }}" value="{{ music.id }}">
@@ -43,6 +38,12 @@
                     </button>
                 </li>
                 {% endfor %}
+
+                {% else %}
+                <li>
+                    No song matching your search was found.
+                </li>
+                {% endif %}
             </ul>
         </form>
     </div>
@@ -57,14 +58,6 @@
             window.onload = function() {
                 showAlert();
             };
-        </script>
-        <script>
-            // Check if 'voted' or 'already_voted' is true and display alert
-            {% if voted %}
-                alert('Thank you for voting! You can vote again after 5 minutes.');
-            {% elif already_voted %}
-                alert('You already voted. Please wait 5 minutes to vote again.');
-            {% endif %}
         </script>
     {% endif %}
 {% endblock %}
