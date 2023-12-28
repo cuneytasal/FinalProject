@@ -1,6 +1,7 @@
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, UserManager
+from phonenumber_field.modelfields import PhoneNumberField
 from django.contrib.auth.hashers import make_password
 from os.path import join
 import datetime
@@ -45,7 +46,7 @@ class Account(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-    phone_number = models.CharField(max_length=20)
+    phone_number = PhoneNumberField()
     qr_code = models.ImageField(max_length=255, null=True, blank=True)
 
     objects = MyAccountManager()
