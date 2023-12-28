@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-fdn&=k4!v8#p$-m9=a2s!e2$=dq=n!%t(pg(sc*^x=2_hk(&n)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = "account.Account"
 
@@ -51,10 +51,12 @@ INSTALLED_APPS = [
     'frontend',
     'account',
     'django_cron',
+    'phonenumber_field',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -140,7 +142,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Path where media is stored
 MEDIA_ROOT = os.path.join(BASE_DIR, 'frontend/static/images/')
